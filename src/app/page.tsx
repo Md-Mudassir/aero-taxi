@@ -1,85 +1,42 @@
 'use client'
 
 import { useState } from 'react'
-import { MapPin, ArrowRight, Search, X } from 'lucide-react'
+import { MapPin, Search, X, Clock, IndianRupee, Plane } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { bangaloreLocations } from '@/lib/mock-data'
+import { bangaloreLocations, calculateRoute, type Location, type DroneRoute } from '@/lib/mock-data'
 import { useRouter } from 'next/navigation'
 
 export default function Home() {
-  const mapContainer = useRef<HTMLDivElement>(null)
-  const map = useRef<mapboxgl.Map | null>(null)
+  const router = useRouter()
   const [fromLocation, setFromLocation] = useState<Location | null>(null)
   const [toLocation, setToLocation] = useState<Location | null>(null)
   const [route, setRoute] = useState<DroneRoute | null>(null)
   const [step, setStep] = useState<'select-from' | 'select-to' | 'confirm-booking'>('select-from')
-  const [showMap, setShowMap] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [filteredLocations, setFilteredLocations] = useState<Location[]>(bangaloreLocations)
 
-  // Initialize map
-  useEffect(() => {
-    if (!showMap || !mapContainer.current || map.current) return
-
-    mapboxgl.accessToken = MAPBOX_TOKEN
-
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [77.5946, 12.9716], // Bangalore center
-      zoom: 11
-    })
-
-    // Add markers for all locations
-    bangaloreLocations.forEach(location => {
-      const marker = new mapboxgl.Marker({
-        color: location.type === 'pickup' ? '#22c55e' : '#ef4444'
-      })
-        .setLngLat(location.coordinates)
-        .setPopup(new mapboxgl.Popup().setHTML(`<strong>${location.name}</strong><br>${location.area}`))
-        .addTo(map.current!)
-
-      // Add click handler
-      marker.getElement().addEventListener('click', () => {
-        handleLocationSelect(location)
-        setShowMap(false)
-      })
-    })
-
-    return () => {
-      if (map.current) {
-        map.current.remove()
-        map.current = null
-      }
-    }
-  }, [showMap])
-
-  // Filter locations based on search
-  useEffect(() => {
-    const filtered = bangaloreLocations.filter(location =>
-      location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      location.area.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    setFilteredLocations(filtered)
-  }, [searchQuery])
+  // Get filtered locations based on search
+  const filteredLocations = searchQuery
+    ? bangaloreLocations.filter(location =>
+        location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        location.area.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : bangaloreLocations
 
   const handleLocationSelect = (location: Location) => {
     if (step === 'select-from') {
       setFromLocation(location)
       setStep('select-to')
+      setSearchQuery('')
     } else if (step === 'select-to') {
-      if (location.id === fromLocation?.id) {
-        return // Can't select same location
-      }
+      if (location.id === fromLocation?.id) return
       setToLocation(location)
       const calculatedRoute = calculateRoute(fromLocation!, location)
       setRoute(calculatedRoute)
       setStep('confirm-booking')
+      setSearchQuery('')
     }
-    setSearchQuery('')
-    setShowMap(false)
   }
 
   const resetBooking = () => {
@@ -88,7 +45,11 @@ export default function Home() {
     setRoute(null)
     setStep('select-from')
     setSearchQuery('')
-    setShowMap(false)
+  }
+
+  const handleBookingConfirm = () => {
+    // Redirect to tracking page to simulate drone pickup/drop process
+    router.push('/tracking')
   }
 
   return (
@@ -146,12 +107,12 @@ export default function Home() {
           <div>
             <h2 className="text-xl font-semibold mb-4 text-center">Where are you?</h2>
             
-            {/* Search and Map Toggle */}
-            <div className="mb-4 space-y-3">
+            {/* Search */}
+            <div className="mb-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search locations..."
+                  placeholder="Search pickup locations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 pr-10"
@@ -165,29 +126,11 @@ export default function Home() {
                   </button>
                 )}
               </div>
-              
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setShowMap(!showMap)}
-              >
-                <MapPin className="h-4 w-4 mr-2" />
-                {showMap ? 'Hide Map' : 'Show Map'}
-              </Button>
             </div>
-
-            {/* Map View */}
-            {showMap && (
-              <Card className="mb-4">
-                <CardContent className="p-0">
-                  <div ref={mapContainer} className="w-full h-64 rounded-lg" />
-                </CardContent>
-              </Card>
-            )}
 
             {/* Location List */}
             <div className="space-y-3">
-              {(searchQuery ? filteredLocations : bangaloreLocations)
+              {filteredLocations
                 .filter(loc => loc.type === 'pickup')
                 .map((location) => (
                 <Card 
@@ -220,8 +163,8 @@ export default function Home() {
               <h2 className="text-xl font-semibold text-center">Where to?</h2>
             </div>
             
-            {/* Search and Map Toggle */}
-            <div className="mb-4 space-y-3">
+            {/* Search */}
+            <div className="mb-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -239,34 +182,16 @@ export default function Home() {
                   </button>
                 )}
               </div>
-              
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setShowMap(!showMap)}
-              >
-                <MapPin className="h-4 w-4 mr-2" />
-                {showMap ? 'Hide Map' : 'Show Map'}
-              </Button>
             </div>
 
-            {/* Map View */}
-            {showMap && (
-              <Card className="mb-4">
-                <CardContent className="p-0">
-                  <div ref={mapContainer} className="w-full h-64 rounded-lg" />
-                </CardContent>
-              </Card>
-            )}
-
             <div className="space-y-3">
-              {(searchQuery ? filteredLocations : bangaloreLocations).map((location) => (
+              {filteredLocations.map((location) => (
                 <Card 
                   key={location.id} 
                   className={`cursor-pointer hover:shadow-md transition-shadow ${
                     location.id === fromLocation?.id ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
-                  onClick={() => handleLocationSelect(location)}
+                  onClick={() => location.id !== fromLocation?.id && handleLocationSelect(location)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
@@ -355,11 +280,12 @@ export default function Home() {
             </Card>
 
             <div className="space-y-3">
-              <Link href="/payment" className="block">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                  Book for ₹{route.price}
-                </Button>
-              </Link>
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={handleBookingConfirm}
+              >
+                Book Drone Taxi
+              </Button>
               <Button 
                 variant="outline" 
                 className="w-full"

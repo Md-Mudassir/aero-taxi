@@ -16,6 +16,8 @@ type RideStatus =
   | "confirmed"
   | "drone_dispatched"
   | "at_velipot"
+  | "en_route_to_pickup"
+  | "passenger_pickup"
   | "passenger_verified"
   | "in_transit"
   | "completed";
@@ -137,29 +139,39 @@ export default function TrackingPage() {
     };
   }, []);
 
-  // Simulate ride progress and drone movement
+  // Simulate ride progress and drone movement - Auto-start for POC
   useEffect(() => {
     const statusProgression: RideStatus[] = [
       "confirmed",
       "drone_dispatched",
       "at_velipot",
+      "en_route_to_pickup",
+      "passenger_pickup",
       "passenger_verified",
       "in_transit",
       "completed",
     ];
 
     let currentIndex = 0;
+    
+    // Start simulation immediately for POC
     const interval = setInterval(() => {
       if (currentIndex < statusProgression.length - 1) {
         currentIndex++;
         setRideStatus(statusProgression[currentIndex]);
 
-        if (statusProgression[currentIndex] === "at_velipot") {
+        if (statusProgression[currentIndex] === "passenger_pickup") {
           setShowVerification(true);
+          // Auto-verify after 3 seconds for POC
+          setTimeout(() => {
+            setPassengerVerified(true);
+            setShowVerification(false);
+            setRideStatus("passenger_verified");
+          }, 3000);
         }
 
         // Update estimated arrival
-        const remainingTime = (statusProgression.length - currentIndex - 1) * 3 * 60 * 1000;
+        const remainingTime = (statusProgression.length - currentIndex - 1) * 2 * 60 * 1000; // Faster for POC
         setEstimatedArrival(new Date(Date.now() + remainingTime));
 
         // Animate drone movement based on status
@@ -176,14 +188,32 @@ export default function TrackingPage() {
             case "at_velipot":
               newPosition = mockRoute.velipot.coordinates;
               break;
-            case "in_transit":
-              // Move towards destination
-              const progress = 0.3; // 30% of the way
+            case "en_route_to_pickup":
+              // Move from velipot towards pickup location
+              const pickupProgress = 0.6; // 60% of the way to pickup
               newPosition = [
                 mockRoute.velipot.coordinates[0] +
-                  (mockRoute.to.coordinates[0] - mockRoute.velipot.coordinates[0]) * progress,
+                  (mockRoute.from.coordinates[0] - mockRoute.velipot.coordinates[0]) * pickupProgress,
                 mockRoute.velipot.coordinates[1] +
-                  (mockRoute.to.coordinates[1] - mockRoute.velipot.coordinates[1]) * progress,
+                  (mockRoute.from.coordinates[1] - mockRoute.velipot.coordinates[1]) * pickupProgress,
+              ];
+              break;
+            case "passenger_pickup":
+              // Arrive at pickup location
+              newPosition = mockRoute.from.coordinates;
+              break;
+            case "passenger_verified":
+              // Stay at pickup location briefly
+              newPosition = mockRoute.from.coordinates;
+              break;
+            case "in_transit":
+              // Move from pickup towards destination
+              const transitProgress = 0.4; // 40% of the way to destination
+              newPosition = [
+                mockRoute.from.coordinates[0] +
+                  (mockRoute.to.coordinates[0] - mockRoute.from.coordinates[0]) * transitProgress,
+                mockRoute.from.coordinates[1] +
+                  (mockRoute.to.coordinates[1] - mockRoute.from.coordinates[1]) * transitProgress,
               ];
               break;
             case "completed":
@@ -199,20 +229,21 @@ export default function TrackingPage() {
           // Update popup with new info
           droneMarker.current.setPopup(
             new mapboxgl.Popup().setHTML(
-              `<strong>Drone ${mockRoute.droneId}</strong><br>Status: ${statusProgression[currentIndex]}<br>Altitude: ${dronePosition.altitude}m<br>Speed: ${dronePosition.speed} km/h`
+              `<strong>Drone ${mockRoute.droneId}</strong><br>Altitude: ${dronePosition.altitude}m<br>Speed: ${dronePosition.speed} km/h`
             )
           );
         }
       } else {
         clearInterval(interval);
       }
-    }, 8000); // Change status every 8 seconds for demo
+    }, 4000); // 4 seconds per step for better visualization
 
     return () => clearInterval(interval);
   }, [
     dronePosition.altitude,
     dronePosition.speed,
     mockRoute.droneId,
+    mockRoute.from.coordinates,
     mockRoute.to.coordinates,
     mockRoute.velipot.coordinates,
   ]);
@@ -231,10 +262,14 @@ export default function TrackingPage() {
         return "Drone Dispatched";
       case "at_velipot":
         return "Drone at Velipot";
+      case "en_route_to_pickup":
+        return "Flying to Pickup";
+      case "passenger_pickup":
+        return "Arrived for Pickup";
       case "passenger_verified":
         return "Passenger Verified";
       case "in_transit":
-        return "In Transit";
+        return "Flying to Destination";
       case "completed":
         return "Ride Completed";
     }
@@ -248,6 +283,10 @@ export default function TrackingPage() {
         return "bg-yellow-500";
       case "at_velipot":
         return "bg-orange-500";
+      case "en_route_to_pickup":
+        return "bg-indigo-500";
+      case "passenger_pickup":
+        return "bg-cyan-500";
       case "passenger_verified":
         return "bg-green-500";
       case "in_transit":
@@ -397,44 +436,45 @@ export default function TrackingPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Velipot (Drone Station) */}
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="font-medium">{mockRoute.from.name}</p>
-                  <p className="text-sm text-gray-600">Pickup Location</p>
-                </div>
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              </div>
-
-              <div className="ml-1.5 w-0.5 h-8 bg-gray-300"></div>
-
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    ["at_velipot", "passenger_verified", "in_transit", "completed"].includes(
-                      rideStatus
-                    )
-                      ? "bg-blue-500"
-                      : "bg-gray-300"
-                  }`}
-                ></div>
+                <div className={`w-3 h-3 rounded-full ${
+                  ["drone_dispatched", "at_velipot", "en_route_to_pickup", "passenger_pickup", "passenger_verified", "in_transit", "completed"].includes(rideStatus)
+                    ? "bg-blue-500" : "bg-gray-300"
+                }`}></div>
                 <div className="flex-1">
                   <p className="font-medium">{mockRoute.velipot.name}</p>
                   <p className="text-sm text-gray-600">Drone Station</p>
                 </div>
-                {["passenger_verified", "in_transit", "completed"].includes(rideStatus) && (
+                {["at_velipot", "en_route_to_pickup", "passenger_pickup", "passenger_verified", "in_transit", "completed"].includes(rideStatus) && (
                   <CheckCircle className="h-5 w-5 text-blue-500" />
                 )}
               </div>
 
               <div className="ml-1.5 w-0.5 h-8 bg-gray-300"></div>
 
+              {/* Pickup Location */}
               <div className="flex items-center gap-3">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    rideStatus === "completed" ? "bg-red-500" : "bg-gray-300"
-                  }`}
-                ></div>
+                <div className={`w-3 h-3 rounded-full ${
+                  ["passenger_pickup", "passenger_verified", "in_transit", "completed"].includes(rideStatus)
+                    ? "bg-green-500" : "bg-gray-300"
+                }`}></div>
+                <div className="flex-1">
+                  <p className="font-medium">{mockRoute.from.name}</p>
+                  <p className="text-sm text-gray-600">Pickup Location</p>
+                </div>
+                {["passenger_verified", "in_transit", "completed"].includes(rideStatus) && (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                )}
+              </div>
+
+              <div className="ml-1.5 w-0.5 h-8 bg-gray-300"></div>
+
+              {/* Destination */}
+              <div className="flex items-center gap-3">
+                <div className={`w-3 h-3 rounded-full ${
+                  rideStatus === "completed" ? "bg-red-500" : "bg-gray-300"
+                }`}></div>
                 <div className="flex-1">
                   <p className="font-medium">{mockRoute.to.name}</p>
                   <p className="text-sm text-gray-600">Destination</p>

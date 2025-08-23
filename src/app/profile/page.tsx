@@ -1,24 +1,36 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { User, Settings, CreditCard, Bell, Shield, HelpCircle, LogOut, Edit, Phone, Mail, MapPin } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { useState } from "react";
+import {
+  User,
+  Settings,
+  CreditCard,
+  Bell,
+  Shield,
+  HelpCircle,
+  LogOut,
+  Edit,
+  Phone,
+  Mail,
+  MapPin,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 export default function ProfilePage() {
-  const [isEditing, setIsEditing] = useState(false)
+  const [isEditing, setIsEditing] = useState(false);
   const [userInfo, setUserInfo] = useState({
-    name: 'Rajesh Kumar',
-    email: 'rajesh.kumar@email.com',
-    phone: '+91 98765 43210',
-    address: 'Koramangala, Bangalore'
-  })
+    name: "Sumiyya Kareem",
+    email: "sumiyya.kareem@email.com",
+    phone: "+91 98765 43210",
+    address: "Koramangala, Bangalore",
+  });
 
   const handleSave = () => {
-    setIsEditing(false)
+    setIsEditing(false);
     // In real app, save to backend
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -38,9 +50,9 @@ export default function ProfilePage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+              onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
             >
-              {isEditing ? 'Save' : <Edit className="h-4 w-4" />}
+              {isEditing ? "Save" : <Edit className="h-4 w-4" />}
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -60,7 +72,7 @@ export default function ProfilePage() {
                 {isEditing ? (
                   <Input
                     value={userInfo.name}
-                    onChange={(e) => setUserInfo({...userInfo, name: e.target.value})}
+                    onChange={(e) => setUserInfo({ ...userInfo, name: e.target.value })}
                   />
                 ) : (
                   <p className="text-gray-900">{userInfo.name}</p>
@@ -73,7 +85,7 @@ export default function ProfilePage() {
                   <Input
                     type="email"
                     value={userInfo.email}
-                    onChange={(e) => setUserInfo({...userInfo, email: e.target.value})}
+                    onChange={(e) => setUserInfo({ ...userInfo, email: e.target.value })}
                   />
                 ) : (
                   <div className="flex items-center gap-2">
@@ -88,7 +100,7 @@ export default function ProfilePage() {
                 {isEditing ? (
                   <Input
                     value={userInfo.phone}
-                    onChange={(e) => setUserInfo({...userInfo, phone: e.target.value})}
+                    onChange={(e) => setUserInfo({ ...userInfo, phone: e.target.value })}
                   />
                 ) : (
                   <div className="flex items-center gap-2">
@@ -103,7 +115,7 @@ export default function ProfilePage() {
                 {isEditing ? (
                   <Input
                     value={userInfo.address}
-                    onChange={(e) => setUserInfo({...userInfo, address: e.target.value})}
+                    onChange={(e) => setUserInfo({ ...userInfo, address: e.target.value })}
                   />
                 ) : (
                   <div className="flex items-center gap-2">
@@ -122,7 +134,9 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold mb-1">Premium Member</h3>
-                <p className="text-blue-100 text-sm">Enjoy exclusive benefits and priority booking</p>
+                <p className="text-blue-100 text-sm">
+                  Enjoy exclusive benefits and priority booking
+                </p>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold">₹2,450</div>
@@ -245,8 +259,8 @@ export default function ProfilePage() {
         </Card>
 
         {/* Logout */}
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="w-full mt-6 text-red-600 border-red-300 hover:bg-red-50"
         >
           <LogOut className="h-4 w-4 mr-2" />
@@ -254,10 +268,8 @@ export default function ProfilePage() {
         </Button>
 
         {/* App Version */}
-        <div className="text-center mt-6 text-xs text-gray-500">
-          Aero Taxi v1.0.0
-        </div>
+        <div className="text-center mt-6 text-xs text-gray-500">Aero Taxi v1.0.0</div>
       </div>
     </div>
-  )
+  );
 }
