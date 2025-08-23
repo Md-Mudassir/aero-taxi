@@ -11,7 +11,6 @@ import { useRouter } from 'next/navigation'
 export default function Home() {
   const router = useRouter()
   const [fromLocation, setFromLocation] = useState<Location | null>(null)
-  const [toLocation, setToLocation] = useState<Location | null>(null)
   const [route, setRoute] = useState<DroneRoute | null>(null)
   const [step, setStep] = useState<'select-from' | 'select-to' | 'confirm-booking'>('select-from')
   const [searchQuery, setSearchQuery] = useState('')
@@ -31,7 +30,6 @@ export default function Home() {
       setSearchQuery('')
     } else if (step === 'select-to') {
       if (location.id === fromLocation?.id) return
-      setToLocation(location)
       const calculatedRoute = calculateRoute(fromLocation!, location)
       setRoute(calculatedRoute)
       setStep('confirm-booking')
@@ -41,7 +39,6 @@ export default function Home() {
 
   const resetBooking = () => {
     setFromLocation(null)
-    setToLocation(null)
     setRoute(null)
     setStep('select-from')
     setSearchQuery('')
